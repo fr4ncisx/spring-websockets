@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket - Suscripción y Envío de Mensajes</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Estilos personalizados */
+        body {
+            background-color: #f8f9fa;
+            padding-top: 50px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h3 {
+            margin-bottom: 20px;
+            color: #343a40;
+        }
+        .form-group {
+            margin-bottom: 10px; /* Reducimos el margen inferior */
+        }
+        .btn {
+            width: 100%; /* Botones ocupan el 100% del ancho */
+            height: 40px; /* Altura fija para los botones */
+            margin-top: 0; /* Eliminamos el margen superior */
+        }
+        .message-container {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f1f1f1;
+            border-radius: 5px;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .row {
+            display: flex;
+            flex-wrap: wrap; /* Asegura que las columnas se ajusten en pantallas pequeñas */
+        }
+        .col-md-6 {
+            display: flex;
+            flex-direction: column;
+            flex: 1; /* Hace que ambas columnas tengan el mismo ancho */
+            margin-bottom: 20px; /* Espacio entre columnas en pantallas pequeñas */
+        }
+        .col-md-6 form {
+            flex: 1; /* Hace que el formulario ocupe el espacio restante */
+            display: flex;
+            flex-direction: column;
+        }
+        .error-message {
+            color: #dc3545; /* Color rojo para mensajes de error */
+            font-size: 0.875em;
+            margin-top: 5px;
+        }
+        .is-invalid {
+            border-color: #dc3545; /* Borde rojo para campos inválidos */
+        }
+        .subscription-success {
+            color: #28a745; /* Color verde para mensajes de éxito */
+            font-size: 0.875em;
+            margin-top: 5px;
+        }
+        @media (max-width: 767.98px) {
+            .col-md-6 {
+                flex: 0 0 100%; /* En móviles, las columnas ocupan el 100% del ancho */
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-6">
+            <h3>Suscripción a Canal</h3>
+            <form id="subscribeForm">
+                <div class="form-group">
+                    <label for="subscribeChannel">Canal al que suscribirse</label>
+                    <input type="text" class="form-control" id="subscribeChannel"
+                           placeholder="Escribe el canal al que te suscribes">
+                    <div class="error-message" id="subscribeChannelError"></div>
+                    <div class="subscription-success" id="subscriptionSuccess"></div>
+                </div>
+                <button type="button" class="btn btn-primary" onclick="subscribe()">Suscribirse</button>
+            </form>
+            <div id="receivedMessages" class="message-container">
+                <h5>Mensajes Recibidos</h5>
+                <ul id="messagesReceived"></ul>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <h3>Envío de Mensajes</h3>
+            <form id="sendMessageForm">
+                <div class="form-group">
+                    <label for="sendChannel">Canal para enviar</label>
+                    <input type="text" class="form-control" id="sendChannel"
+                           placeholder="Escribe el canal al que deseas enviar">
+                    <div class="error-message" id="sendChannelError"></div>
+                </div>
+                <div class="form-group">
+                    <label for="message">Mensaje</label>
+                    <textarea class="form-control" id="message" placeholder="Escribe tu mensaje aquí"></textarea>
+                    <div class="error-message" id="messageError"></div>
+                </div>
+                <button type="button" class="btn btn-success" onclick="sendMessage()">Enviar</button>
+            </form>
+            <div id="sentMessages" class="message-container">
+                <h5>Mensajes Enviados</h5>
+                <ul id="messagesSent"></ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript y WebSocket -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
+<script>
+    let stompClient = null;
+    let socket = null;
+
+    // Función para conectar al WebSocket
+    function connect() {
+        socket = new WebSocket('ws://localhost:8080/ws'); // Usamos WebSocket directamente sin SockJS
+
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, function (frame) {
+            // Habilitar los campos de suscripción y envío después de conectar
+            document.getElementById("subscribeChannel").disabled = false;
+            document.getElementById("sendChannel").disabled = false;
+            document.getElementById("message").disabled = false;
+            console.log("Conectado al WebSocket");
+
+        }, function (error) {
+            alert("Error de conexión: " + error); // Si ocurre un error, muestra el mensaje
+            attemptReconnect();
+        });
+
+        // Detectar si el WebSocket se cierra inesperadamente
+        socket.onclose = function () {
+            console.log("Conexión WebSocket cerrada. Intentando reconectar...");
+            attemptReconnect();
+        };
+    }
+
+    // Función para intentar reconectar
+    function attemptReconnect() {
+        setTimeout(function () {
+            console.log("Reintentando conexión...");
+            connect(); // Intentar conectar nuevamente
+        }, 5000); // Reintenta cada 5 segundos
+    }
+
+    // Función para validar campos vacíos
+    function validateField(field, errorElement, errorMessage) {
+        if (!field.value.trim()) {
+            field.classList.add("is-invalid");
+            errorElement.textContent = errorMessage;
+            return false;
+        } else {
+            field.classList.remove("is-invalid");
+            errorElement.textContent = "";
+            return true;
+        }
+    }
+
+    // Función para suscribirse al canal
+    function subscribe() {
+        const subscribeChannel = document.getElementById("subscribeChannel");
+        const subscribeChannelError = document.getElementById("subscribeChannelError");
+        const subscriptionSuccess = document.getElementById("subscriptionSuccess");
+
+        // Validar campo vacío
+        if (!validateField(subscribeChannel, subscribeChannelError, "El canal no puede estar vacío.")) {
+            return;
+        }
+
+        if (!stompClient) {
+            alert("No estás conectado al WebSocket. Por favor, intenta conectarte primero.");
+            return;
+        }
+
+        let channel = subscribeChannel.value;
+
+        // Mostrar mensaje de éxito
+        subscriptionSuccess.textContent = `Te has suscrito al canal: ${channel}`;
+
+        // Suscribirse al canal
+        stompClient.subscribe(channel, function (messageOutput) {
+            let receivedMessage = messageOutput.body;
+            let messageList = document.getElementById("messagesReceived");
+            let li = document.createElement("li");
+            li.appendChild(document.createTextNode("Mensaje recibido: " + receivedMessage));
+            messageList.appendChild(li);
+        });
+    }
+
+    // Función para enviar mensaje al canal
+    function sendMessage() {
+        const sendChannel = document.getElementById("sendChannel");
+        const sendChannelError = document.getElementById("sendChannelError");
+        const message = document.getElementById("message");
+        const messageError = document.getElementById("messageError");
+
+        // Validar campos vacíos
+        if (!validateField(sendChannel, sendChannelError, "El canal no puede estar vacío.")) {
+            return;
+        }
+        if (!validateField(message, messageError, "El mensaje no puede estar vacío.")) {
+            return;
+        }
+
+        if (!stompClient) {
+            alert("No estás conectado al WebSocket. Por favor, intenta conectarte primero.");
+            return;
+        }
+
+        let channel = sendChannel.value;
+        let messageContent = message.value;
+
+        stompClient.send(channel, {}, JSON.stringify({ message: messageContent }));
+
+        let messageList = document.getElementById("messagesSent");
+        let li = document.createElement("li");
+        li.appendChild(document.createTextNode("Mensaje enviado: " + messageContent + " a " + channel));
+        messageList.appendChild(li);
+
+        // Limpiar el campo de mensaje después de enviar
+        message.value = "";
+    }
+
+    // Eliminar errores al escribir en los campos
+    document.getElementById("subscribeChannel").addEventListener("input", function () {
+        this.classList.remove("is-invalid");
+        document.getElementById("subscribeChannelError").textContent = "";
+    });
+
+    document.getElementById("sendChannel").addEventListener("input", function () {
+        this.classList.remove("is-invalid");
+        document.getElementById("sendChannelError").textContent = "";
+    });
+
+    document.getElementById("message").addEventListener("input", function () {
+        this.classList.remove("is-invalid");
+        document.getElementById("messageError").textContent = "";
+    });
+
+    // Llamar a la función connect para iniciar la conexión WebSocket cuando cargue la página
+    window.onload = connect;
+</script>
+
+</body>
+</html>
