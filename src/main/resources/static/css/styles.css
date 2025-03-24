@@ -1,0 +1,168 @@
+body {
+  background-color: #f8f9fa;
+  padding-top: 50px;
+}
+
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.connection-status {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  padding: 8px 15px;
+  border-radius: 20px;
+  font-weight: bold;
+  z-index: 1000;
+}
+
+.connected {
+  background-color: #28a745;
+  color: white;
+}
+
+.disconnected {
+  background-color: #dc3545;
+  color: white;
+}
+
+.reconnecting {
+  background-color: #ffc107;
+  color: black;
+}
+
+/* Contenedores principales */
+.message-container {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f1f1f1;
+    border-radius: 5px;
+    height: 300px; /* Altura fija */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Cabecera de los contenedores */
+.message-container h5 {
+    margin: 0 0 15px 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+    position: sticky;
+    top: 0;
+    background-color: #f1f1f1;
+    z-index: 1;
+}
+
+/* Lista de mensajes */
+.message-container ul {
+    flex: 1;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* Items de mensajes */
+.message-item {
+    padding: 10px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    word-break: break-word;
+    position: relative;
+}
+
+/* Mensajes recibidos */
+#messagesReceived .message-item {
+    background-color: #e9f7fe;
+    border-left: 4px solid #2196F3;
+}
+
+/* Mensajes enviados */
+#messagesSent .message-item {
+    background-color: #e8f5e9;
+    border-left: 4px solid #4CAF50;
+}
+
+/* Timestamp */
+.message-timestamp {
+    font-size: 0.75rem;
+    color: #666;
+    display: block;
+    text-align: right;
+    margin-top: 4px;
+}
+
+/* Canal/destino */
+.message-destination {
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+/* Contenido del mensaje */
+.message-content {
+    margin: 5px 0;
+}
+
+.list-group-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.timestamp {
+  font-size: 0.8em;
+  color: #6c757d;
+}
+
+.error-message {
+  color: #dc3545;
+  font-size: 0.875em;
+  margin-top: 5px;
+}
+
+.is-invalid {
+  border-color: #dc3545;
+}
+
+.subscription-success {
+  color: #28a745;
+  font-size: 0.875em;
+  margin-top: 5px;
+}
+
+/* Estilos para los botones de suscripción */
+.subscription-buttons {
+  display: flex;
+  gap: 10px; /* Espacio entre botones */
+  align-items: center;
+  margin-top: 10px;
+}
+.subscription-buttons .btn {
+  flex: 1; /* Hace que ambos botones tengan el mismo ancho */
+  white-space: nowrap; /* Evita que el texto se divida en varias líneas */
+  padding: 8px 12px; /* Ajuste de padding para mejor apariencia */
+}
+
+/* Ajuste específico para el botón de desuscribirse */
+.btn-outline-danger {
+  border-color: #dc3545;
+  color: #dc3545;
+}
+
+.btn-outline-danger:hover {
+  background-color: #dc3545;
+  color: white;
+}
+
+@media (max-width: 767.98px) {
+  .col-md-6 {
+    margin-bottom: 20px;
+  }
+}
