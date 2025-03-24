@@ -17,6 +17,8 @@ public class MessageService {
 
     @Transactional
     public void addMessage(MessageRequest message) {
+        if(message == null)
+            throw new IllegalArgumentException("Cannot be null");
         Messages msg = new Messages(null, message.getMessage());
         messageRepository.save(msg);
     }
